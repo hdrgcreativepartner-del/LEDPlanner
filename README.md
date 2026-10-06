@@ -7,7 +7,7 @@ A dependency-free, browser-based LED mapping tool by HDRG Creative Partner. Open
 2. Kabel: choose data or power, zig-zag orientation and starting corner. Set m² per data port / power loop, and estimated cable lengths.
 3. Export: Resolume XML Beta, input/output SVG or PNG, data/power SVG, manual connection CSV, cable bill CSV, or project JSON.
 
-Each rectangular LED screen currently corresponds to one Resolume slice. Separate input/output origins are supported; scaling, rotation, polygon slices and splitting one physical screen into several slices are not yet supported.
+Each rectangular LED screen currently corresponds to one Resolume slice. Separate input/output origins and input rotation are supported. Scaling, polygon slices and splitting one physical screen into several slices are not yet supported.
 
 ## Cabinet examples
 P3.91: 500×500 mm at 128×128 px, or 500×1000 mm at 128×256 px.
@@ -39,3 +39,15 @@ Passed JS syntax; default and legacy project schemas; 24 m² route/cable count e
 
 ## Hosting
 Settings → Pages → Deploy from a branch → main → /(root). GitHub Pages is for a noncommercial trial. Use suitable hosting before operating a commercial SaaS.
+
+## Canvas editor update
+- Auto or Custom dimensions for input and each output; new projects default to Auto. Existing v3 projects retain custom sizes. Auto bounds include input rotation; negative rotated extents are normalized back into the canvas on completion of an edit.
+- Auto dimensions describe the mapped pixel footprint, not guaranteed hardware video timings. Custom resolutions remain fixed.
+- Move (V), Hand (H), temporary pan (Space), mouse-wheel zoom around the cursor, touch pinch zoom, Fit, 100%, fullscreen (with expanded-workspace fallback), edge snapping and arrow-key nudging (Shift = 10 px).
+- Input rotation via handle or degrees / ±90 buttons. Shift-drag rotation snaps to 15 degrees. Rotated corner coordinates are written into InputRect in XML; output coordinates remain independent.
+- Per-screen color picker. Cable diagrams retain port/loop colors.
+- Undo/redo with up to 60 snapshots; input fields do not trigger editor keyboard shortcuts.
+- Project title uses an explicit rename button; static labels use ordinary cursors and canvas text cannot be selected while dragging.
+- Responsive workspace height and fullscreen canvas. Pan/zoom do not alter exported pixel coordinates.
+
+Validation added: auto and custom sizing; rotated bounds at 45°/90°; separate output geometry; SVG color and clean exports; invalid angle/color rejection; history checkpoints; cable count regression; rotated XML parsed independently. Browser interaction/fullscreen testing and native Resolume import remain unverified in this environment.
