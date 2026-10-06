@@ -58,3 +58,10 @@ Input and each output now have independent Lock/Unlock buttons, including a shor
 The viewport stays stable during dragging; it fits updated dimensions after release, avoiding feedback between pointer coordinates and live zoom. Negative rotated input extents are normalized on release. Manual sizes and lock modes persist in project JSON/local storage through existing custom/auto mode fields.
 
 Checks passed: live bounds, independent locks, manual dimensions, unlock recalculation, field editing states, plus previous geometry and cable regressions. Browser interaction testing remains unverified.
+
+## Exact-canvas PNG / test patterns
+The image export UI now offers Input Map PNG, Output Map PNG, Input Mask PNG and Output Mask PNG, plus data/power diagram PNG. XML remains separate. Map exports use a checkerboard in the screen color, diagonals, crosshair, circle, origin coordinates, centered screen name and native screen resolution. A PNG/JPEG/WebP logo up to 500 KB may be embedded and saved in the project. No logo is extracted from reference images.
+
+PNG dimensions exactly equal the selected input/output canvas dimensions. There is no editor padding, viewport zoom, selection handle or automatic downscaling. Locked canvas clips objects at its fixed boundaries. Mask exports contain white LED polygons on black; input masks include rotation. Oversized exports (over 16,384 px on either axis or over 64 megapixels) are rejected explicitly instead of changing size; browser memory limitations may still cause export failure.
+
+Tests passed: 1536×768 exact test-pattern dimensions, white/black mask, 5000 px no-downscale behavior, input rotation, oversized guard, SVG/XML parsing, and prior canvas/cable regressions. Actual browser rasterization has not been verified in this environment.
