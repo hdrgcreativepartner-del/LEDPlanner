@@ -51,3 +51,10 @@ Settings → Pages → Deploy from a branch → main → /(root). GitHub Pages i
 - Responsive workspace height and fullscreen canvas. Pan/zoom do not alter exported pixel coordinates.
 
 Validation added: auto and custom sizing; rotated bounds at 45°/90°; separate output geometry; SVG color and clean exports; invalid angle/color rejection; history checkpoints; cable count regression; rotated XML parsed independently. Browser interaction/fullscreen testing and native Resolume import remain unverified in this environment.
+
+## Canvas locks and live dimensions
+Input and each output now have independent Lock/Unlock buttons, including a shortcut above the active canvas. Unlock uses automatic content bounds, updated during object dragging and rotation. Width/height fields are read-only in Auto; Lock freezes the current dimensions and enables manual editing. Unlock recomputes from the current layout. Lock controls canvas dimensions only: objects remain movable and out-of-bounds validation remains active.
+
+The viewport stays stable during dragging; it fits updated dimensions after release, avoiding feedback between pointer coordinates and live zoom. Negative rotated input extents are normalized on release. Manual sizes and lock modes persist in project JSON/local storage through existing custom/auto mode fields.
+
+Checks passed: live bounds, independent locks, manual dimensions, unlock recalculation, field editing states, plus previous geometry and cable regressions. Browser interaction testing remains unverified.
