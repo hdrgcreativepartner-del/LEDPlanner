@@ -1,34 +1,36 @@
-# LED Planner
+# LED Planner — HDRG
 
-Browser-based videotron planning prototype by HDRG Creative Partner.
+## Trial 0.2
+Responsive browser-based LED layout and processor planning tool. Open index.html directly; no dependencies or build required.
 
-## Run
-Open index.html in a modern browser. No build process or external dependencies.
+GitHub Pages: Settings → Pages → Deploy from a branch → main → /(root).
 
-For a GitHub Pages trial: Settings → Pages → Deploy from a branch → main → /(root) → Save. Expected project URL after deployment: https://hdrgcreativepartner-del.github.io/LEDPlanner/
+## Features
+- Project information, local save, validated JSON backup/import (0.1 projects supported).
+- Multiple LED screens, drag placement, cabinet geometry, pixel and maximum-power totals.
+- Front-view zig-zag data routing, zoom controls and numeric placement.
+- Responsive desktop panels and mobile canvas-first layout.
+- Multiple manually configured processors: NovaStar, Colorlight, Linsn, Huidu, Brompton and other brands.
+- Screen allocation to processor and starting port. Each route uses the next port.
+- Checks for shared ports across screens, exceeding port count, and exceeding manually entered pixel-per-port limits. Zero pixel limit means unknown.
+- All-processor planning JSON/CSV and individual processor CSV.
+- Layout PNG, cabinet CSV, print/PDF, equipment and crew notes.
 
-## Available in 0.1
-- Project name, venue and event date.
-- Multiple LED screens with cabinet dimensions, pixel resolution and maximum power.
-- Drag placement snapped to 50 mm, plus numeric position fields.
-- Cabinet totals, pixel totals and maximum power totals.
-- Horizontal/vertical zig-zag routing with per-screen port labels; user-defined cabinets per route.
-- Local equipment and crew notes.
-- Browser local storage, validated JSON import/export, layout PNG, cabinet CSV, and printable layout/PDF.
+## Export compatibility
+Planning CSV/JSON is an LED Planner technical schedule for manual setup, NOT a native vendor import file. Pixel coordinates are local to each screen, with front-view orientation. Screen row/column and chain indices are one-based; local pixel origin is zero-based.
 
-## Limitations
-This is a prototype, not a completed rental management system. Data is local to the browser; export backups regularly. No shared inventory, authentication, processor capacity validation, rear-view routing, power distribution design or live hardware control. Port numbers are local to each screen, not globally assigned processor ports. Cable lengths are not calculated. Maximum power is a sum of entered cabinet ratings, not an electrical safety check.
+NovaStar SCR/RCFGX, Colorlight native configurations, and Resolume Advanced Output XML are NOT implemented. These require real fixture files, supported version definitions and round-trip testing. A receiver configuration cannot be derived solely from cabinet geometry.
 
-Resolume input/output slice editing and XML export are NOT implemented. They require a real preset fixture and target-version import testing; do not treat project JSON as a Resolume preset. Pixel dimensions in the default profile are illustrative and must be checked against actual cabinets.
+## Limits
+Manual processor profiles are not certified equipment specifications. Checks do not cover frame rate, bit depth, bandwidth, receiver limits, maximum width/height, redundancy or electrical distribution. Cabinet counts per route are user-defined. Storing data locally does not synchronize inventory across people or devices. Back up projects regularly.
 
-## Next milestones
-1. Input and output canvases with separate coordinates and slice ownership.
-2. Tested Resolume XML export based on a supplied preset.
-3. Processor port assignment and validation against equipment profiles.
-4. Power routing and technical pack.
-5. Structured inventory, crew assignments and project revisions.
+## Validation
+Passed syntax checks, v0.1 schema compatibility, planning record counts, port collision detection, port count overflow, pixel capacity overflow and unsafe processor identifier rejection. Previous routing adjacency checks passed. Automated browser testing was attempted but unavailable because Chromium download failed; visual interactions and native vendor imports have not been verified.
 
-## Checks performed
-JavaScript syntax; project schema validation; cabinet totals; routing uniqueness and adjacency for both axes. Browser interaction and Resolume import have not been tested in this environment.
+## Next
+Independent input/output mapping, tested native format adapters, power routing and structured rental inventory.
 
-GitHub Pages is for the noncommercial trial. Move hosting before operating a commercial SaaS, following GitHub Pages usage limits.
+Official reference: https://oss.novastar.tech/uploads/2022/08/NovaLCT-LED-Configuration-Tool-for-Synchronous-Control-System-User-Manual-V5.4.4.5.pdf
+Colorlight software: https://en.colorlightinside.com/product/download/381
+
+GitHub Pages is intended for the noncommercial trial; move hosting before operating a commercial SaaS.
