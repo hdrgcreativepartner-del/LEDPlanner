@@ -5,7 +5,7 @@ A dependency-free, browser-based LED mapping tool by HDRG Creative Partner. Open
 ## Simple workflow
 1. Mapping: choose a cabinet example or custom physical/pixel dimensions, set columns and rows, place screens independently on input and output canvases.
 2. Kabel: choose data or power, zig-zag orientation and starting corner. Set m² per data port / power loop, and estimated cable lengths.
-3. Export: Resolume XML Beta, input/output SVG or PNG, data/power SVG, manual connection CSV, cable bill CSV, or project JSON.
+3. Export: Resolume XML Beta, exact-canvas input/output PNG and masks, routing PNG, branded PDF, or project JSON.
 
 Each rectangular LED screen currently corresponds to one Resolume slice. Separate input/output origins and input rotation are supported. Scaling, polygon slices and splitting one physical screen into several slices are not yet supported.
 
@@ -24,7 +24,7 @@ A 24 m² screen of 48 cabinets, each 500×1000 mm, gives three data routes and t
 
 ## Export compatibility
 - Resolume XML **Beta**: XmlState / ScreenSetup, composition size, virtual outputs, rectangular InputRect/OutputRect, Bezier and homography output geometry. Independently implemented from observed fixture structure. XML parsing, coordinate separation and structure tested. Actual import into Arena has NOT been tested. Select physical display outputs after import. Out-of-bounds and overlapping output slices block XML export.
-- NovaLCT, Colorlight and other vendor software: connection CSV for MANUAL entry only. It includes processor/output, port, chain order, cabinet output pixel position and power loop. Native .scr/.rcfgx or Colorlight config export is NOT implemented. Real target-version fixtures and import validation are required; receiver parameters cannot be inferred from geometry.
+- NovaLCT, Colorlight and other vendor software: native .scr/.rcfgx or Colorlight config export is NOT implemented. Use routing diagrams as a manual setup reference. CSV exports have been removed.
 - Project JSON is only for LED Planner. Old v1 JSON can be migrated; crew/asset fields are omitted from the new model. The old browser storage key is preserved.
 
 ## References
@@ -65,3 +65,10 @@ The image export UI now offers Input Map PNG, Output Map PNG, Input Mask PNG and
 PNG dimensions exactly equal the selected input/output canvas dimensions. There is no editor padding, viewport zoom, selection handle or automatic downscaling. Locked canvas clips objects at its fixed boundaries. Mask exports contain white LED polygons on black; input masks include rotation. Oversized exports (over 16,384 px on either axis or over 64 megapixels) are rejected explicitly instead of changing size; browser memory limitations may still cause export failure.
 
 Tests passed: 1536×768 exact test-pattern dimensions, white/black mask, 5000 px no-downscale behavior, input rotation, oversized guard, SVG/XML parsing, and prior canvas/cable regressions. Actual browser rasterization has not been verified in this environment.
+
+## HDRG branding, alignment and PDF
+- Dark splash screen uses the supplied HDRG logo and dismisses automatically or with Mulai.
+- Align selected LED left, center, right, top, middle or bottom relative to the active canvas. Alignment locks its dimensions and accounts for input rotation.
+- PDF download includes five landscape pages: all input mapping, selected output mapping, selected output data/power routing, and whole-project cable totals. Supplied HDRG header/footer appear on every page.
+- Routing uses dark cabinet fills, larger white bold labels, brighter grid lines and thicker colored paths for canvas and exports. CSV actions are removed.
+- Validated six alignment directions, rotated input alignment, saved schema, and generation/rendering of the five-page PDF with a native Canvas test harness. Actual browser interaction remains unverified.
