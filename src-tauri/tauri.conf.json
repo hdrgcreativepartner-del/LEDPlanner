@@ -29,6 +29,15 @@
     "targets": [
       "nsis"
     ],
+    "icon": [
+      "icons/icon.ico"
+    ],
+    "windows": {
+      "nsis": {
+        "installerIcon": "icons/icon.ico",
+        "uninstallerIcon": "icons/icon.ico"
+      }
+    },
     "shortDescription": "LED mapping and cabling planner",
     "longDescription": "Desktop shell for LED Planner by HDRG Creative Partner."
   }
