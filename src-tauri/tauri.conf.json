@@ -26,16 +26,12 @@
   },
   "bundle": {
     "active": true,
-    "targets": [
-      "nsis"
-    ],
-    "icon": [
-      "icons/icon.ico"
-    ],
+    "targets": ["nsis"],
+    "icon": ["icons/icon.ico"],
     "windows": {
       "nsis": {
-        "installerIcon": "icons/icon.ico",
-        "uninstallerIcon": "icons/icon.ico"
+        "installerIcon": "icons/installer.ico",
+        "uninstallerIcon": "icons/installer.ico"
       }
     },
     "shortDescription": "LED mapping and cabling planner",
