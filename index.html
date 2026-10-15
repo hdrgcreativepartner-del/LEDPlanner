@@ -490,6 +490,21 @@ render=function(){
  if(bar&&!bar.querySelector('.build-label'))bar.insertAdjacentHTML('beforeend','<span class="build-label" title="Build Move & Transform">UI v2026.10.15-R2</span>');
 };
 
+
+/* Explicit resize entry point from either map: output-only geometry remains truthful. */
+function beginResizeOutput(){const s=current();if(!s)return notify('Pilih layar terlebih dahulu.');activeOutput=s.output;mode='output';tool='move';render();notify('Mode resize output: tarik titik sudut putih untuk upscale, kabinet tetap.')}
+const resizeEntryRender=renderEditor;
+renderEditor=function(){
+ resizeEntryRender();
+ if(tab!=='Mapping')return;
+ const bar=document.querySelector('.canvas-bar');
+ if(bar&&!bar.querySelector('.resize-output-action')){
+  const b=document.createElement('button');b.type='button';b.className='primary resize-output-action';b.textContent=mode==='input'?'↗ Resize Output':'↗ Resize Screen';b.title='Buka Output Map dan tampilkan empat handle resize; kabinet tetap';b.onclick=beginResizeOutput;bar.append(b);
+ }
+ const info=document.querySelector('.transform-hint');
+ if(info&&mode==='input')info.innerHTML='<strong>Input Map</strong> Drag bidang untuk memindahkan input. Untuk memperbesar ukuran screen, klik tombol <b>Resize Output</b> di atas (skala output tanpa menambah kabinet).';
+};
+
 render();
 </script></body></html>
 
