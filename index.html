@@ -89,7 +89,7 @@ let testLogoUpload=0;
 function testLogoFeedback(){return state.testLogo?`<div class="test-logo-card"><div class="test-logo-thumb"><img src="${state.testLogo}" alt="Preview logo test pattern"></div><div class="test-logo-info"><strong>✓ Logo aktif</strong><span>${escapeHTML(typeof state.testLogoName==='string'?state.testLogoName:'Logo tersimpan')}</span><p>Logo akan tampil pada Input Map PNG, Output Map PNG, dan mapping PDF.</p><button type="button" onclick="removeTestLogo()">Hapus logo</button></div></div>`:'<p class="helper">Belum ada logo. Pilih gambar untuk melihat preview di sini.</p>'}
 function removeTestLogo(){testLogoUpload++;delete state.testLogo;delete state.testLogoName;persist();render();notify('Logo test pattern dihapus')}
 async function loadTestLogo(file){if(!file)return;const token=++testLogoUpload,status=$('testLogoStatus');const message=text=>{if(status)status.textContent=text;notify(text)};if(!['image/png','image/jpeg','image/webp'].includes(file.type)||file.size>500*1024){message('Gunakan PNG/JPG/WebP maksimal 500 KB. Logo sebelumnya tetap digunakan.');return}if(status){status.textContent='Memuat preview logo…';status.setAttribute('aria-busy','true')}try{let data=await new Promise((resolve,reject)=>{let r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=reject;r.readAsDataURL(file)});await new Promise((resolve,reject)=>{let img=new Image();img.onload=resolve;img.onerror=reject;img.src=data});if(token!==testLogoUpload)return;state.testLogo=data;state.testLogoName=file.name;persist();render();notify('Logo test pattern berhasil ditambahkan')}catch{if(token===testLogoUpload)message('Gambar tidak dapat dibaca. Silakan pilih file lain.')}finally{if(status)status.removeAttribute('aria-busy')}}
-function testPatternSVG(view,w,h){const list=view==='input'?state.screens:state.screens.filter(s=>s.output===activeOutput);return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><rect width="${w}" height="${h}" fill="#000000"/>${list.map((s,i)=>{let W=view==='input'?sw(s):outputW(s),H=view==='input'?sh(s):outputH(s),x=view==='input'?s.ix:s.ox,y=view==='input'?s.iy:s.oy,tileX=Math.max(2,Math.min(2048,Number(state.exportTileX)||Number(state.exportTilePx)||32)),tileY=Math.max(2,Math.min(2048,Number(state.exportTileY)||Number(state.exportTilePx)||32)),font=Math.max(8,Math.min(W,H)*.026),title=font*1.25,boxW=Math.min(W*.8,Math.max(s.name.length*title*.62,W*.18)),boxH=font*2.8,cx=W/2,cy=H/2,r=Math.min(W,H)/2-2;return `<defs><pattern id="check${i}" width="${tileX*2}" height="${tileY*2}" patternUnits="userSpaceOnUse"><rect width="${tileX*2}" height="${tileY*2}" fill="${s.color}"/><path d="M0 0h${tileX}v${tileY}H0Z M${tileX} ${tileY}h${tileX}v${tileY}h-${tileX}Z" fill="#000000" fill-opacity=".45"/><path d="M0 0H${tileX*2}V${tileY*2}H0Z M${tileX} 0V${tileY*2} M0 ${tileY}H${tileX*2}" fill="none" stroke="#ffffff" stroke-opacity=".35" stroke-width=".5"/></pattern><clipPath id="screenclip${i}"><rect width="${W}" height="${H}"/></clipPath></defs><g transform="translate(${x} ${y})${view==='input'?` rotate(${s.angle||0} ${cx} ${cy})`:''}" clip-path="url(#screenclip${i})"><rect width="${W}" height="${H}" fill="url(#check${i})"/>${state.testLogo?`<image href="${state.testLogo}" x="${W*.15}" y="${H*.05}" width="${W*.7}" height="${H*.9}" preserveAspectRatio="xMidYMid meet"/>`:''}<path d="M0 0L${W} ${H}M${W} 0L0 ${H}M${cx} 0V${H}M0 ${cy}H${W}" fill="none" stroke="#ffffff" stroke-opacity=".65" stroke-width="1.5"/><circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#ffffff" stroke-opacity=".65" stroke-width="1.5"/><rect x=".75" y=".75" width="${Math.max(0,W-1.5)}" height="${Math.max(0,H-1.5)}" fill="none" stroke="#ffffff" stroke-width="1.5"/><text x="5" y="${font+3}" fill="#ffffff" font-family="Arial,sans-serif" font-size="${font}">${x},${y}</text><rect x="${cx-boxW/2}" y="${cy-boxH/2}" width="${boxW}" height="${boxH}" fill="#000000" stroke="#ffffff" stroke-width="1"/><text x="${cx}" y="${cy-font*.12}" text-anchor="middle" fill="#ffffff" font-family="Arial,sans-serif" font-size="${title}" textLength="${Math.min(boxW-8,s.name.length*title*.62)}" lengthAdjust="spacingAndGlyphs">${escapeHTML(s.name)}</text><text x="${cx}" y="${cy+font}" text-anchor="middle" fill="#ffffff" font-family="Arial,sans-serif" font-size="${font*.75}">${W} × ${H}</text></g>`}).join('')}</svg>`}
+function testPatternSVG(view,w,h){const list=view==='input'?state.screens:state.screens.filter(s=>s.output===activeOutput);return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><rect width="${w}" height="${h}" fill="#000000"/>${list.map((s,i)=>{let W=view==='input'?Math.round(sw(s)*(Number(s.inputScale)||1)):outputW(s),H=view==='input'?Math.round(sh(s)*(Number(s.inputScale)||1)):outputH(s),x=view==='input'?s.ix:s.ox,y=view==='input'?s.iy:s.oy,tileX=Math.max(2,Math.min(2048,Number(state.exportTileX)||Number(state.exportTilePx)||32)),tileY=Math.max(2,Math.min(2048,Number(state.exportTileY)||Number(state.exportTilePx)||32)),font=Math.max(8,Math.min(W,H)*.026),title=font*1.25,boxW=Math.min(W*.8,Math.max(s.name.length*title*.62,W*.18)),boxH=font*2.8,cx=W/2,cy=H/2,r=Math.min(W,H)/2-2;return `<defs><pattern id="check${i}" width="${tileX*2}" height="${tileY*2}" patternUnits="userSpaceOnUse"><rect width="${tileX*2}" height="${tileY*2}" fill="${s.color}"/><path d="M0 0h${tileX}v${tileY}H0Z M${tileX} ${tileY}h${tileX}v${tileY}h-${tileX}Z" fill="#000000" fill-opacity=".45"/><path d="M0 0H${tileX*2}V${tileY*2}H0Z M${tileX} 0V${tileY*2} M0 ${tileY}H${tileX*2}" fill="none" stroke="#ffffff" stroke-opacity=".35" stroke-width=".5"/></pattern><clipPath id="screenclip${i}"><rect width="${W}" height="${H}"/></clipPath></defs><g transform="translate(${x} ${y})${view==='input'?` rotate(${s.angle||0} ${cx} ${cy})`:''}" clip-path="url(#screenclip${i})"><rect width="${W}" height="${H}" fill="url(#check${i})"/>${state.testLogo?`<image href="${state.testLogo}" x="${W*.15}" y="${H*.05}" width="${W*.7}" height="${H*.9}" preserveAspectRatio="xMidYMid meet"/>`:''}<path d="M0 0L${W} ${H}M${W} 0L0 ${H}M${cx} 0V${H}M0 ${cy}H${W}" fill="none" stroke="#ffffff" stroke-opacity=".65" stroke-width="1.5"/><circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#ffffff" stroke-opacity=".65" stroke-width="1.5"/><rect x=".75" y=".75" width="${Math.max(0,W-1.5)}" height="${Math.max(0,H-1.5)}" fill="none" stroke="#ffffff" stroke-width="1.5"/><text x="5" y="${font+3}" fill="#ffffff" font-family="Arial,sans-serif" font-size="${font}">${x},${y}</text><rect x="${cx-boxW/2}" y="${cy-boxH/2}" width="${boxW}" height="${boxH}" fill="#000000" stroke="#ffffff" stroke-width="1"/><text x="${cx}" y="${cy-font*.12}" text-anchor="middle" fill="#ffffff" font-family="Arial,sans-serif" font-size="${title}" textLength="${Math.min(boxW-8,s.name.length*title*.62)}" lengthAdjust="spacingAndGlyphs">${escapeHTML(s.name)}</text><text x="${cx}" y="${cy+font}" text-anchor="middle" fill="#ffffff" font-family="Arial,sans-serif" font-size="${font*.75}">${W} × ${H}</text></g>`}).join('')}</svg>`}
 function highContrastCableSVG(svg){return svg.replace(/fill="#[0-9a-fA-F]{6}" fill-opacity="\.12"/g,'fill="#142033"').replaceAll('stroke="#567087" stroke-width=".7"','stroke="#71839b" stroke-width="1.3"').replace(/<text([^>]*?)fill="#d4e2f2" font-size="([0-9.]+)"/g,(_,attrs,size)=>`<text${attrs}fill="#ffffff" font-family="Arial,sans-serif" font-weight="700" font-size="${Number(size)*1.6}"`).replace(/<line ([^>]*?)stroke="(#[0-9a-fA-F]{6})" stroke-width="2" marker-end="([^"]+)"\/>/g,(_,attrs,color,marker)=>`<line ${attrs}stroke="#050a12" stroke-width="8" stroke-linecap="round"/><line ${attrs}stroke="${color}" stroke-width="4" stroke-linecap="round" marker-end="${marker}"/>`).replace(/r="5" fill="(#[0-9a-fA-F]{6})"/g,'r="8" fill="$1" stroke="#ffffff" stroke-width="2"')}
 function pngSpec(view,mask=false){autoSize();const o=state.outputs.find(o=>o.id===activeOutput),w=view==='input'?state.inputW:o.width,h=view==='input'?state.inputH:o.height;if(w>16384||h>16384||w*h>67108864)throw Error('Canvas melebihi batas ekspor PNG (16.384 px per sisi / 64 megapiksel). Ukuran tidak diperkecil otomatis.');let root=`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">`,svg;if(mask){let list=view==='input'?state.screens:state.screens.filter(s=>s.output===activeOutput);svg=root+`<rect width="${w}" height="${h}" fill="#000000"/>`+list.map(s=>{let points=view==='input'?inputPoints(s):[[s.ox,s.oy],[s.ox+outputW(s),s.oy],[s.ox+outputW(s),s.oy+outputH(s)],[s.ox,s.oy+outputH(s)]];return `<polygon points="${points.map(p=>p.join(',')).join(' ')}" fill="#ffffff"/>`}).join('')+'</svg>'}else if(view!=='cable'){svg=testPatternSVG(view,w,h)}else{svg=canvasSVG(view,false).replace(/<svg\b[^>]*>/,root).replace(/<text id="canvasCaption"[^>]*>[\s\S]*?<\/text>/,'').replace(/<rect id="canvasBackground"[^>]*\/>/,`<rect width="${w}" height="${h}" fill="#000000"/>`).replace(/<rect id="canvasExtent"[^>]*\/>/,'').replaceAll('fill-opacity=".12"','fill-opacity="1"').replaceAll('stroke="#d2ffa2"','stroke="#567087"');if(view!=='cable')svg=svg.replaceAll('fill="#d4e2f2"','fill="#101720"');svg=svg.replaceAll('y="-7"','y="16"')}let suffix=view==='input'?'input':view==='output'?'output-'+o.id:cableMode+'-'+o.id;return {w,h,svg,name:'ledplanner-'+suffix+(mask?'-mask':'-map')+'-'+w+'x'+h+'.png'}}
 function exportPNG(view,mask=false){let spec;try{spec=pngSpec(view,mask)}catch(e){return notify(e.message)}let c=document.createElement('canvas');c.width=spec.w;c.height=spec.h;let img=new Image(),url=URL.createObjectURL(new Blob([spec.svg],{type:'image/svg+xml'}));img.onload=()=>{try{let ctx=c.getContext('2d');if(!ctx)throw Error('Canvas tidak tersedia');ctx.drawImage(img,0,0,spec.w,spec.h);c.toBlob(b=>{if(b){download(b,spec.name,'image/png');notify('PNG '+spec.w+' × '+spec.h+' px diekspor')}else notify('Browser gagal membuat PNG ukuran ini. Ukuran tidak diubah.')},'image/png')}catch(e){notify('Gagal ekspor PNG: '+e.message)}finally{URL.revokeObjectURL(url)}};img.onerror=()=>{URL.revokeObjectURL(url);notify('Gagal membuat PNG')};img.src=url}
@@ -101,7 +101,7 @@ $('import').onchange=async e=>{try{let f=e.target.files[0];if(!f)return;if(f.siz
 // Canvas editor enhancements. Viewport state is deliberately separate from project pixels.
 function extrasValid(v){return (v.pdfRoutingView===undefined||['front','rear','both'].includes(v.pdfRoutingView))&&(v.testLogo===undefined||(typeof v.testLogo==='string'&&v.testLogo.length<800000&&/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(v.testLogo)))&&(v.inputMode===undefined||['auto','custom'].includes(v.inputMode))&&v.outputs.every(o=>o.sizeMode===undefined||['auto','custom'].includes(o.sizeMode))&&v.screens.every(s=>(s.angle===undefined||(Number.isFinite(s.angle)&&Math.abs(s.angle)<=360))&&(s.color===undefined||/^#[0-9a-f]{6}$/i.test(s.color)))}
 function hydrate(){state.inputMode??='custom';state.outputs.forEach(o=>o.sizeMode??='custom');state.screens.forEach((s,i)=>{s.angle??=0;s.color??=colors[i%colors.length]})}
-function inputPoints(s){const a=(s.angle||0)*Math.PI/180,c=Math.cos(a),d=Math.sin(a),w=sw(s),h=sh(s),cx=s.ix+w/2,cy=s.iy+h/2;return [[-w/2,-h/2],[w/2,-h/2],[w/2,h/2],[-w/2,h/2]].map(([x,y])=>[cx+x*c-y*d,cy+x*d+y*c])}
+function inputPoints(s){const a=(s.angle||0)*Math.PI/180,c=Math.cos(a),d=Math.sin(a),w=Math.round(sw(s)*(Number(s.inputScale)||1)),h=Math.round(sh(s)*(Number(s.inputScale)||1)),cx=s.ix+w/2,cy=s.iy+h/2;return [[-w/2,-h/2],[w/2,-h/2],[w/2,h/2],[-w/2,h/2]].map(([x,y])=>[cx+x*c-y*d,cy+x*d+y*c])}
 function inputVertices(s){return inputPoints(s).map(([x,y])=>`<v x="${Math.round(x*1e6)/1e6}" y="${Math.round(y*1e6)/1e6}"/>`).join('')}
 function inputBounds(s){let p=inputPoints(s),xs=p.map(p=>p[0]),ys=p.map(p=>p[1]);return {x:Math.min(...xs),y:Math.min(...ys),right:Math.max(...xs),bottom:Math.max(...ys)}}
 function autoSize(normalize=true){hydrate();if(state.inputMode==='auto'&&state.screens.length){let b=state.screens.map(inputBounds),dx=Math.max(0,Math.ceil(-Math.min(...b.map(b=>b.x))-1e-8)),dy=Math.max(0,Math.ceil(-Math.min(...b.map(b=>b.y))-1e-8));if(normalize&&(dx||dy))state.screens.forEach(s=>{s.ix+=dx;s.iy+=dy});b=state.screens.map(inputBounds);state.inputW=Math.min(32768,Math.max(1,Math.ceil(Math.max(...b.map(b=>b.right))-1e-8)));state.inputH=Math.min(32768,Math.max(1,Math.ceil(Math.max(...b.map(b=>b.bottom))-1e-8)))}for(let o of state.outputs)if(o.sizeMode==='auto'){let a=state.screens.filter(s=>s.output===o.id);o.width=Math.min(32768,Math.max(1,...a.map(s=>s.ox+outputW(s))));o.height=Math.min(32768,Math.max(1,...a.map(s=>s.oy+outputH(s))))}}
@@ -305,7 +305,7 @@ drawCanvas=function(){
    let y=Math.max(0,Math.min(65000,snapped(p.y-g.offsetY,s,'y')));
    if(mode==='input'){s.ix=x;s.iy=y}else{s.ox=x;s.oy=y}
    let group=svg.querySelector('[data-screen="'+s.id+'"]');
-   if(group)group.setAttribute('transform','translate('+x+' '+y+') '+(mode==='input'?'rotate('+(s.angle||0)+' '+sw(s)/2+' '+sh(s)/2+')':'scale('+outputScale(s)+')'));
+   if(group)group.setAttribute('transform','translate('+x+' '+y+') '+(mode==='input'?'rotate('+(s.angle||0)+' '+sw(s)*(Number(s.inputScale)||1)/2+' '+sh(s)*(Number(s.inputScale)||1)/2+') scale('+(Number(s.inputScale)||1)+')':'scale('+outputScale(s)+')'));
    if(mode==='output')updateOverlay(s);
   }else{
    let ox=g.corner.includes('w')?g.x+g.w:g.x;
@@ -320,7 +320,7 @@ drawCanvas=function(){
    let group=svg.querySelector('[data-screen="'+s.id+'"]');
    if(group)group.setAttribute('transform','translate('+s.ox+' '+s.oy+') scale('+scale+')');
    let overlay=svg.querySelector('[data-free-transform]');
-   if(overlay){overlay.setAttribute('transform','translate('+s.ox+' '+s.oy+')');let w=outputW(s),h=outputH(s);let frame=overlay.querySelector('rect:first-child');if(frame){frame.setAttribute('width',w);frame.setAttribute('height',h)}let pos=[[0,0],[w,0],[w,h],[0,h]];overlay.querySelectorAll('[data-transform-grip]').forEach((handle,i)=>{handle.setAttribute('x',pos[i][0]-7);handle.setAttribute('y',pos[i][1]-7)})}
+   if(overlay){overlay.setAttribute('transform','translate('+(mode==='input'?s.ix:s.ox)+' '+(mode==='input'?s.iy:s.oy)+')'+(mode==='input'?' rotate('+(s.angle||0)+' '+Math.round(sw(s)*(Number(s.inputScale)||1))/2+' '+Math.round(sh(s)*(Number(s.inputScale)||1))/2+')':''));let w=outputW(s),h=outputH(s);let frame=overlay.querySelector('rect:first-child');if(frame){frame.setAttribute('width',w);frame.setAttribute('height',h)}let pos=[[0,0],[w,0],[w,h],[0,h]];overlay.querySelectorAll('[data-transform-grip]').forEach((handle,i)=>{handle.setAttribute('x',pos[i][0]-7);handle.setAttribute('y',pos[i][1]-7)})}
   }
  },true);
  const finish=e=>{
@@ -357,10 +357,10 @@ drawCanvas=function(){
  const updateHandles=()=>{
   const chosen=state.screens.find(t=>t.id===selected);
   const overlay=svg.querySelector('[data-free-transform]');
-  if(!overlay||!chosen||mode!=='output')return;
+  if(!overlay||!chosen)return;
   const px=Math.max(1,view.w/Math.max(1,svg.getBoundingClientRect().width));
-  const size=Math.max(14,px*24),half=size/2;
-  const points=[[0,0],[outputW(chosen),0],[outputW(chosen),outputH(chosen)],[0,outputH(chosen)]];
+  const size=Math.max(5,px*12),half=size/2;
+  const cw=mode==='input'?Math.round(sw(chosen)*(Number(chosen.inputScale)||1)):outputW(chosen),ch=mode==='input'?Math.round(sh(chosen)*(Number(chosen.inputScale)||1)):outputH(chosen);const points=[[0,0],[cw,0],[cw,ch],[0,ch]];
   overlay.querySelectorAll('[data-transform-grip]').forEach((handle,i)=>{
    const [x,y]=points[i];handle.setAttribute('x',x-half);handle.setAttribute('y',y-half);
    handle.setAttribute('width',size);handle.setAttribute('height',size);
@@ -372,10 +372,10 @@ drawCanvas=function(){
   const group=svg.querySelector('[data-screen="'+s.id+'"]');
   if(group)group.setAttribute('transform','translate('+(mode==='input'?s.ix:s.ox)+' '+(mode==='input'?s.iy:s.oy)+') '+(mode==='input'?'rotate('+(s.angle||0)+' '+sw(s)/2+' '+sh(s)/2+')':'scale('+outputScale(s)+')'));
   const overlay=svg.querySelector('[data-free-transform]');
-  if(overlay&&mode==='output'){
+  if(overlay){
    overlay.setAttribute('transform','translate('+s.ox+' '+s.oy+')');
    const frame=overlay.querySelector('rect:first-child');
-   if(frame){frame.setAttribute('width',outputW(s));frame.setAttribute('height',outputH(s))}
+   if(frame){frame.setAttribute('width',mode==='input'?Math.round(sw(s)*(Number(s.inputScale)||1)):outputW(s));frame.setAttribute('height',mode==='input'?Math.round(sh(s)*(Number(s.inputScale)||1)):outputH(s))}
    const corners=[[0,0],[outputW(s),0],[outputW(s),outputH(s)],[0,outputH(s)]];
    updateHandles();
   }
@@ -384,11 +384,11 @@ drawCanvas=function(){
   if(e.button!==0&&e.button!==1)return;
   let grip=e.target.closest('[data-transform-grip]');
   // Hit-testing in screen pixels: do not depend on tiny SVG handles.
-  if(!grip&&mode==='output'&&tool==='move'){
+  if(!grip&&tool==='move'){
    const screen=state.screens.find(t=>t.id===selected);
-   if(screen&&screen.output===activeOutput){
-    const point=mousePoint(e,svg),corners=[[screen.ox,screen.oy,'nw'],[screen.ox+outputW(screen),screen.oy,'ne'],[screen.ox+outputW(screen),screen.oy+outputH(screen),'se'],[screen.ox,screen.oy+outputH(screen),'sw']];
-    const threshold=24*view.w/Math.max(1,svg.clientWidth);
+   if(screen&&(mode==='input'||screen.output===activeOutput)){
+    const point=mousePoint(e,svg),ax=mode==='input'?screen.ix:screen.ox,ay=mode==='input'?screen.iy:screen.oy,ww=mode==='input'?Math.round(sw(screen)*(Number(screen.inputScale)||1)):outputW(screen),hh=mode==='input'?Math.round(sh(screen)*(Number(screen.inputScale)||1)):outputH(screen),corners=[[ax,ay,'nw'],[ax+ww,ay,'ne'],[ax+ww,ay+hh,'se'],[ax,ay+hh,'sw']];
+    const threshold=12*view.w/Math.max(1,svg.clientWidth);
     const candidate=corners.find(([x,y])=>Math.hypot(point.x-x,point.y-y)<=threshold);
     if(candidate)grip={dataset:{transformGrip:screen.id,corner:candidate[2]}};
    }
@@ -406,10 +406,10 @@ drawCanvas=function(){
    selected=s.id;
    const cx=s.ix+sw(s)/2,cy=s.iy+sh(s)/2;
    interaction={kind:'rotate',s,cx,cy,start:Math.atan2(p.y-cy,p.x-cx),angle:s.angle||0};
-  }else if(grip&&mode==='output'){
+  }else if(grip){
    const s=targetScreen;if(!s)return;
    selected=s.id;
-   interaction={kind:'scale',s,corner:grip.dataset.corner,x:s.ox,y:s.oy,w:outputW(s),h:outputH(s)};
+   interaction={kind:'scale',s,corner:grip.dataset.corner,x:mode==='input'?s.ix:s.ox,y:mode==='input'?s.iy:s.oy,w:mode==='input'?Math.round(sw(s)*(Number(s.inputScale)||1)):outputW(s),h:mode==='input'?Math.round(sh(s)*(Number(s.inputScale)||1)):outputH(s)};
   }else if(targetScreen){
    const s=targetScreen;
    if(mode==='output'&&s.output!==activeOutput)return;
@@ -445,9 +445,8 @@ drawCanvas=function(){
    const oy=g.corner.includes('n')?g.y+g.h:g.y;
    const sx=g.corner.includes('w')?-1:1,sy=g.corner.includes('n')?-1:1;
    const vx=sx*(p.x-ox),vy=sy*(p.y-oy),w=sw(s),h=sh(s);
-   s.outputScale=Math.round(Math.max(.1,Math.min(20,(vx*w+vy*h)/(w*w+h*h)))*1000)/1000;
-   s.ox=Math.max(0,Math.round(ox-(g.corner.includes('w')?outputW(s):0)));
-   s.oy=Math.max(0,Math.round(oy-(g.corner.includes('n')?outputH(s):0)));
+   const scale=Math.round(Math.max(.1,Math.min(20,(vx*w+vy*h)/(w*w+h*h)))*1000)/1000;
+   if(mode==='input'){s.inputScale=scale;s.ix=Math.max(0,Math.round(ox-(g.corner.includes('w')?Math.round(w*scale):0)));s.iy=Math.max(0,Math.round(oy-(g.corner.includes('n')?Math.round(h*scale):0)))}else{s.outputScale=scale;s.ox=Math.max(0,Math.round(ox-(g.corner.includes('w')?outputW(s):0)));s.oy=Math.max(0,Math.round(oy-(g.corner.includes('n')?outputH(s):0)))}
   }
   place(s);
   liveCanvasSize();
@@ -504,6 +503,38 @@ renderEditor=function(){
  const info=document.querySelector('.transform-hint');
  if(info&&mode==='input')info.innerHTML='<strong>Input Map</strong> Drag bidang untuk memindahkan input. Untuk memperbesar ukuran screen, klik tombol <b>Resize Output</b> di atas (skala output tanpa menambah kabinet).';
 };
+
+
+/* Input and output share restrained Photoshop-style handles. */
+const bothMapSVG=canvasSVG;
+canvasSVG=function(v,interactive){
+ let xml=bothMapSVG(v,interactive),kind=v||(tab==='Kabel'?'cable':mode);
+ if(kind==='input'){
+  for(const s of state.screens){
+   const prefix='<g data-screen="'+s.id+'" transform="translate('+s.ix+' '+s.iy+') rotate('+(s.angle||0)+' '+sw(s)/2+' '+sh(s)/2+')"';
+   const scale=Number(s.inputScale)||1;
+   xml=xml.replace(prefix,'<g data-screen="'+s.id+'" transform="translate('+s.ix+' '+s.iy+') rotate('+(s.angle||0)+' '+Math.round(sw(s)*scale)/2+' '+Math.round(sh(s)*scale)/2+') scale('+scale+')"');
+  }
+ }
+ if(interactive&&tab==='Mapping'&&kind==='input'&&tool==='move'){
+  const s=current();if(s){
+   const k=Number(s.inputScale)||1,w=Math.round(sw(s)*k),h=Math.round(sh(s)*k);
+   let overlay='<g data-free-transform="1" transform="translate('+s.ix+' '+s.iy+') rotate('+(s.angle||0)+' '+w/2+' '+h/2+')"><rect width="'+w+'" height="'+h+'" fill="none" stroke="#9dbaf7" stroke-width="1.2" pointer-events="none"/>';
+   for(const [x,y,c] of [[0,0,'nw'],[w,0,'ne'],[w,h,'se'],[0,h,'sw']])overlay+='<rect class="resize-handle" data-transform-grip="'+s.id+'" data-corner="'+c+'" x="'+(x-5)+'" y="'+(y-5)+'" width="10" height="10" rx="1"/>';
+   xml=xml.replace('</svg>',overlay+'</g></svg>');
+  }
+ }
+ return xml;
+};
+const compactEditor=renderEditor;
+renderEditor=function(){
+ compactEditor();
+ const h=document.querySelector('.transform-hint');if(h){h.innerHTML='↖ <b>Move</b> · Geser layar untuk memindah · Tarik sudut untuk skala proporsional';h.style.cssText='font-size:11px;padding:5px 12px;min-height:26px;background:#101b32;color:#aebedb'}
+ const action=document.querySelector('.resize-output-action');if(action)action.remove();
+ const buttons=document.querySelectorAll('.tools button,.canvas-bar button,.align-tools button');
+ buttons.forEach(b=>{b.style.borderRadius='7px';b.style.boxShadow='none';b.style.transition='background .12s,border-color .12s'});
+};
+const miniGuide=document.createElement('style');miniGuide.textContent='.canvas-scroll .resize-handle{fill:#eef5ff;stroke:#427cdb;stroke-width:1.5}.canvas-scroll [data-free-transform] rect:first-child{stroke-width:1.2;stroke-dasharray:4 3}.tools button,.align-tools button,.canvas-bar button{font-size:12px;min-height:34px;padding:6px 9px}.hdrg-transform-card{padding:10px;gap:6px;border-color:#324a79;background:#091735}.hdrg-transform-card .hint{font-size:11px}';document.head.append(miniGuide);
 
 render();
 </script></body></html>
