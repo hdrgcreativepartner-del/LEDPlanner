@@ -244,52 +244,93 @@ canvasSVG=function(v,interactive){
  }
  return xml;
 };
-const originalFreeDraw=drawCanvas;
+
+/* Photoshop-inspired direct manipulation: separate select, move, and scale. */
+const interactionStyle=document.createElement('style');
+interactionStyle.textContent='.transform-hint{display:flex;align-items:center;gap:8px;padding:9px 13px;border-bottom:1px solid #395280;background:#0b204e;color:#dceaff;font-size:12px}.transform-hint strong{color:#fff}.resize-handle{fill:#fff;stroke:#2563eb;stroke-width:2;cursor:nwse-resize;pointer-events:all}.resize-handle:hover{fill:#87c3ff}.canvas-scroll [data-screen]{cursor:move}.transform-hint kbd{padding:2px 6px;border:1px solid #607caf;border-radius:4px;background:#132d62}@media(max-width:700px){.transform-hint{flex-wrap:wrap;font-size:11px}}';
+document.head.append(interactionStyle);
+const photoshopSVGBase=canvasSVG;
+canvasSVG=function(v,interactive){
+ let xml=photoshopSVGBase(v,interactive);
+ if(!interactive||tab!=='Mapping'||mode!=='output'||tool!=='move')return xml;
+ let s=current();if(!s||s.output!==activeOutput)return xml;
+ // Replace the old, corner-only selection overlay with clear four-corner transform guides.
+ let begin=xml.indexOf('<g data-free-transform="1"'),end=xml.indexOf('</g>',begin);
+ if(begin<0||end<0)return xml;
+ let w=outputW(s),h=outputH(s),x=s.ox,y=s.oy;
+ let handles=[[0,0,'nw'],[w,0,'ne'],[w,h,'se'],[0,h,'sw']];
+ let overlay='<g data-free-transform="1" transform="translate('+x+' '+y+')"><rect width="'+w+'" height="'+h+'" fill="none" stroke="#c9e3ff" stroke-width="2" stroke-dasharray="7 5" pointer-events="none"/>';
+ for(let [hx,hy,corner] of handles)overlay+='<rect class="resize-handle" data-transform-grip="'+s.id+'" data-corner="'+corner+'" x="'+(hx-7)+'" y="'+(hy-7)+'" width="14" height="14" rx="2" aria-label="Resize proporsional"><title>Tarik sudut untuk resize proporsional (jumlah kabinet tetap)</title></rect>';
+ overlay+='</g>';
+ return xml.slice(0,begin)+overlay+xml.slice(end+4);
+};
+const photoshopDrawBase=drawCanvas;
 drawCanvas=function(){
- originalFreeDraw();let svg=$('canvas');if(!svg||tab!=='Mapping'||mode!=='output')return;
- let gesture=null;
+ photoshopDrawBase();
+ let svg=$('canvas');if(!svg||tab!=='Mapping')return;
+ const panel=document.querySelector('.canvas-lockbar')||document.querySelector('.bottom');
+ if(panel && !document.querySelector('.transform-hint')){
+  const hint=document.createElement('div');hint.className='transform-hint';
+  hint.innerHTML=mode==='output'?'<strong>Move Tool</strong> Klik layar untuk memilih · drag bagian dalam untuk memindahkan · tarik titik sudut untuk memperbesar/memperkecil · rasio dan jumlah kabinet tetap.':'<strong>Move Tool</strong> Klik layar untuk memilih · drag bagian dalam untuk memindahkan · buka Output Map untuk resize proporsional.';
+  panel.after(hint);
+ }
+ let action=null;
+ function updateOverlay(s){let g=svg.querySelector('[data-free-transform]');if(g)g.setAttribute('transform','translate('+s.ox+' '+s.oy+')')}
  svg.addEventListener('pointerdown',e=>{
-  let grip=e.target.closest('[data-transform-grip]');if(!grip||e.button!==0)return;
-  e.preventDefault();e.stopImmediatePropagation();
-  let s=state.screens.find(s=>s.id===grip.dataset.transformGrip);if(!s)return;
-  gesture={s,start:mousePoint(e,svg),scale:outputScale(s),w:sw(s),h:sh(s)};svg.setPointerCapture(e.pointerId);
+  if(e.button!==0||tool!=='move'||spaceHeld)return;
+  const grip=e.target.closest('[data-transform-grip]');
+  const body=e.target.closest('[data-screen]');
+  if(!grip&&!body)return;
+  // Let the dedicated input rotation handle use the existing rotation logic.
+  if(e.target.closest('[data-rotate]'))return;
+  let id=grip?.dataset.transformGrip||body?.dataset.screen;
+  let s=state.screens.find(item=>item.id===id);if(!s)return;
+  if(mode==='output'&&s.output!==activeOutput)return;
+  let p=mousePoint(e,svg);
+  selected=s.id;
+  if(grip&&mode==='output'){
+   const corner=grip.dataset.corner;
+   action={type:'scale',s,corner,x:s.ox,y:s.oy,w:outputW(s),h:outputH(s),originScale:outputScale(s),start:p,cols:s.cols,rows:s.rows};
+  }else{
+   action={type:'move',s,offsetX:p.x-(mode==='input'?s.ix:s.ox),offsetY:p.y-(mode==='input'?s.iy:s.oy),cols:s.cols,rows:s.rows};
+  }
+  e.preventDefault();e.stopImmediatePropagation();svg.setPointerCapture(e.pointerId);
  },true);
  svg.addEventListener('pointermove',e=>{
-  if(!gesture)return;e.preventDefault();e.stopImmediatePropagation();
-  let g=gesture,p=mousePoint(e,svg),a=p.x-g.s.ox,b=p.y-g.s.oy;
-  let scale=Math.max(.1,Math.min(20,(a*g.w+b*g.h)/(g.w*g.w+g.h*g.h)));
-  g.next=Math.round(scale*1000)/1000;
-  const frame=svg.querySelector('[data-free-transform] > rect');
-  const handle=svg.querySelector('[data-transform-grip]');
-  let w=Math.round(g.w*g.next),h=Math.round(g.h*g.next);
-  if(frame){frame.setAttribute('width',w);frame.setAttribute('height',h)}
-  if(handle){handle.setAttribute('x',w-9);handle.setAttribute('y',h-9)}
-  const group=svg.querySelector('[data-screen="'+g.s.id+'"]');
-  if(group)group.setAttribute('transform','translate('+g.s.ox+' '+g.s.oy+') scale('+g.next+')');
+  if(!action)return;
+  e.preventDefault();e.stopImmediatePropagation();
+  let p=mousePoint(e,svg),g=action,s=g.s;
+  if(g.type==='move'){
+   let x=Math.max(0,Math.min(65000,snapped(p.x-g.offsetX,s,'x')));
+   let y=Math.max(0,Math.min(65000,snapped(p.y-g.offsetY,s,'y')));
+   if(mode==='input'){s.ix=x;s.iy=y}else{s.ox=x;s.oy=y}
+   let group=svg.querySelector('[data-screen="'+s.id+'"]');
+   if(group)group.setAttribute('transform','translate('+x+' '+y+') '+(mode==='input'?'rotate('+(s.angle||0)+' '+sw(s)/2+' '+sh(s)/2+')':'scale('+outputScale(s)+')'));
+   if(mode==='output')updateOverlay(s);
+  }else{
+   let ox=g.corner.includes('w')?g.x+g.w:g.x;
+   let oy=g.corner.includes('n')?g.y+g.h:g.y;
+   let signX=g.corner.includes('w')?-1:1,signY=g.corner.includes('n')?-1:1;
+   let vx=signX*(p.x-ox),vy=signY*(p.y-oy);
+   let scale=Math.max(.1,Math.min(20,(vx*sw(s)+vy*sh(s))/(sw(s)*sw(s)+sh(s)*sh(s))));
+   scale=Math.round(scale*1000)/1000;
+   s.outputScale=scale;
+   s.ox=Math.max(0,Math.round(ox-(g.corner.includes('w')?outputW(s):0)));
+   s.oy=Math.max(0,Math.round(oy-(g.corner.includes('n')?outputH(s):0)));
+   let group=svg.querySelector('[data-screen="'+s.id+'"]');
+   if(group)group.setAttribute('transform','translate('+s.ox+' '+s.oy+') scale('+scale+')');
+   let overlay=svg.querySelector('[data-free-transform]');
+   if(overlay){overlay.setAttribute('transform','translate('+s.ox+' '+s.oy+')');let w=outputW(s),h=outputH(s);let frame=overlay.querySelector('rect:first-child');if(frame){frame.setAttribute('width',w);frame.setAttribute('height',h)}let pos=[[0,0],[w,0],[w,h],[0,h]];overlay.querySelectorAll('[data-transform-grip]').forEach((handle,i)=>{handle.setAttribute('x',pos[i][0]-7);handle.setAttribute('y',pos[i][1]-7)})}
+  }
  },true);
- function complete(e){if(!gesture)return;e.preventDefault();e.stopImmediatePropagation();let g=gesture;gesture=null;g.s.outputScale=g.next||g.scale;persist();render()}
- svg.addEventListener('pointerup',complete,true);svg.addEventListener('pointercancel',complete,true);
-};
-const transformEditorBase=renderEditor;
-renderEditor=function(){transformEditorBase();if(tab!=='Mapping')return;let s=current(),editor=document.querySelector('.inspector-body')||document.querySelector('.editor');if(!editor||!s)return;let box=document.createElement('div');box.className='output-scale-field';box.innerHTML='<label>Skala Output (%)<input type="number" min="10" max="2000" step="1" value="'+Math.round(outputScale(s)*100)+'" onchange="setOutputScale(this.value)"></label><small>Ukuran output: '+outputW(s)+' × '+outputH(s)+' px · kabinet tetap '+s.cols+' × '+s.rows+'. Gunakan handle pojok pada Output Map untuk mengubah skala.</small>';editor.append(box)};
-
-
-/* Cabinet geometry is editable exclusively through numeric row/column fields.
-   Transform gestures only update outputScale, never cols/rows. */
-const cabinetGuardDraw=drawCanvas;
-drawCanvas=function(){
- cabinetGuardDraw();
- const svg=$('canvas');
- if(!svg||tab!=='Mapping')return;
- let snapshot=null;
- svg.addEventListener('pointerdown',e=>{
-  if(e.button!==0||!e.target.closest('[data-screen],[data-transform-grip]'))return;
-  const screen=state.screens.find(s=>s.id===(e.target.closest('[data-screen]')?.dataset.screen||e.target.closest('[data-transform-grip]')?.dataset.transformGrip));
-  if(screen)snapshot={screen,cols:screen.cols,rows:screen.rows};
- },true);
- const protect=()=>{if(!snapshot)return;const {screen,cols,rows}=snapshot;if(screen.cols!==cols||screen.rows!==rows){screen.cols=cols;screen.rows=rows;persist()}snapshot=null};
- svg.addEventListener('pointerup',protect);
- svg.addEventListener('pointercancel',protect);
+ const finish=e=>{
+  if(!action)return;
+  e.preventDefault();e.stopImmediatePropagation();
+  const g=action;action=null;g.s.cols=g.cols;g.s.rows=g.rows;
+  persist();render();
+ };
+ svg.addEventListener('pointerup',finish,true);
+ svg.addEventListener('pointercancel',finish,true);
 };
 
 render();
