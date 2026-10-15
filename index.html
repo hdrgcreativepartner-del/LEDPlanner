@@ -445,6 +445,30 @@ drawCanvas=function(){
  svg.addEventListener('pointercancel',finish,true);
 };
 
+
+/* Visible transform inspector and build stamp, ensuring the deployed revision is identifiable. */
+const uxStampStyle=document.createElement('style');
+uxStampStyle.textContent='.hdrg-transform-card{display:grid;gap:9px;padding:15px;margin:12px 0;border:1px solid #5d8ce6;border-radius:12px;background:#091d56}.hdrg-transform-card strong{font-size:14px;color:#fff}.hdrg-transform-card .pair{display:grid;grid-template-columns:1fr 1fr;gap:10px}.hdrg-transform-card input{width:100%;min-height:44px;background:#061036;border:1px solid #6083cd}.hdrg-transform-card .hint{font-size:12px;color:#c3d4f9;line-height:1.6}.hdrg-transform-card .count{font-size:12px;color:#a9ffdd}.build-label{display:inline-block;margin-left:8px;padding:3px 8px;border:1px solid #466cba;border-radius:5px;font-size:11px;color:#b9d4ff}.canvas-scroll .resize-handle{vector-effect:non-scaling-stroke;stroke-width:2}.transform-hint{z-index:1;position:relative}';
+document.head.append(uxStampStyle);
+const transformInspectorBefore=renderEditor;
+renderEditor=function(){
+ transformInspectorBefore();
+ if(tab!=='Mapping')return;
+ const s=current(),root=document.querySelector('.inspector-body')||document.querySelector('.editor');
+ if(!root)return;
+ const card=document.createElement('section');card.className='hdrg-transform-card';
+ if(s){
+  card.innerHTML='<strong>Transform · '+escapeHTML(s.name)+'</strong><div class="pair"><label>Skala output (%)<input aria-label="Skala output dalam persen" type="number" min="10" max="2000" step="1" value="'+Math.round(outputScale(s)*100)+'" onchange="setOutputScale(this.value)"></label><label>Output (px)<input readonly value="'+outputW(s)+' × '+outputH(s)+'"></label></div><div class="count">Kabinet: '+s.cols+' kolom × '+s.rows+' baris (tidak berubah saat resize)</div><div class="hint">① Klik bidang layar untuk memilih. ② Tarik bagian tengah untuk menggeser. ③ Di Output Map, tarik salah satu dari empat titik sudut untuk memperbesar atau memperkecil dengan rasio tetap.</div>';
+ }else card.innerHTML='<strong>Transform</strong><div class="hint">Pilih sebuah screen untuk menampilkan kontrol Move dan Resize.</div>';
+ root.prepend(card);
+};
+const uxRenderBefore=render;
+render=function(){
+ uxRenderBefore();
+ const bar=document.querySelector('.canvas-bar');
+ if(bar&&!bar.querySelector('.build-label'))bar.insertAdjacentHTML('beforeend','<span class="build-label" title="Build Move & Transform">UI v2026.10.15-R2</span>');
+};
+
 render();
 </script></body></html>
 
