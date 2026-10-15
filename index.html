@@ -350,8 +350,23 @@ drawCanvas=function(){
   const r=svg.getBoundingClientRect();
   if(!r.width||!r.height)return;
   zoomView(Math.exp(Math.max(-100,Math.min(100,e.deltaY))*.002),(e.clientX-r.left)/r.width,(e.clientY-r.top)/r.height);
+  updateHandles();
  };
  let interaction=null;
+ // 24px interactive handles regardless of Fit or mouse-wheel zoom.
+ const updateHandles=()=>{
+  const chosen=state.screens.find(t=>t.id===selected);
+  const overlay=svg.querySelector('[data-free-transform]');
+  if(!overlay||!chosen||mode!=='output')return;
+  const px=Math.max(1,view.w/Math.max(1,svg.getBoundingClientRect().width));
+  const size=Math.max(14,px*24),half=size/2;
+  const points=[[0,0],[outputW(chosen),0],[outputW(chosen),outputH(chosen)],[0,outputH(chosen)]];
+  overlay.querySelectorAll('[data-transform-grip]').forEach((handle,i)=>{
+   const [x,y]=points[i];handle.setAttribute('x',x-half);handle.setAttribute('y',y-half);
+   handle.setAttribute('width',size);handle.setAttribute('height',size);
+  });
+ };
+ updateHandles();
  const coords=e=>mousePoint(e,svg);
  const place=(s)=>{
   const group=svg.querySelector('[data-screen="'+s.id+'"]');
@@ -362,15 +377,22 @@ drawCanvas=function(){
    const frame=overlay.querySelector('rect:first-child');
    if(frame){frame.setAttribute('width',outputW(s));frame.setAttribute('height',outputH(s))}
    const corners=[[0,0],[outputW(s),0],[outputW(s),outputH(s)],[0,outputH(s)]];
-   overlay.querySelectorAll('[data-transform-grip]').forEach((grip,index)=>{
-    grip.setAttribute('x',corners[index][0]-7);
-    grip.setAttribute('y',corners[index][1]-7);
-   });
+   updateHandles();
   }
  };
  svg.addEventListener('pointerdown',e=>{
   if(e.button!==0&&e.button!==1)return;
-  const grip=e.target.closest('[data-transform-grip]');
+  let grip=e.target.closest('[data-transform-grip]');
+  // Hit-testing in screen pixels: do not depend on tiny SVG handles.
+  if(!grip&&mode==='output'&&tool==='move'){
+   const screen=state.screens.find(t=>t.id===selected);
+   if(screen&&screen.output===activeOutput){
+    const point=mousePoint(e,svg),corners=[[screen.ox,screen.oy,'nw'],[screen.ox+outputW(screen),screen.oy,'ne'],[screen.ox+outputW(screen),screen.oy+outputH(screen),'se'],[screen.ox,screen.oy+outputH(screen),'sw']];
+    const threshold=24*view.w/Math.max(1,svg.clientWidth);
+    const candidate=corners.find(([x,y])=>Math.hypot(point.x-x,point.y-y)<=threshold);
+    if(candidate)grip={dataset:{transformGrip:screen.id,corner:candidate[2]}};
+   }
+  }
   const rotate=e.target.closest('[data-rotate]');
   const screenGroup=e.target.closest('[data-screen]');
   const targetId=grip?.dataset.transformGrip||screenGroup?.dataset.screen;
@@ -447,7 +469,7 @@ drawCanvas=function(){
 
 /* Visible transform inspector and build stamp, ensuring the deployed revision is identifiable. */
 const uxStampStyle=document.createElement('style');
-uxStampStyle.textContent='.hdrg-transform-card{display:grid;gap:9px;padding:15px;margin:12px 0;border:1px solid #5d8ce6;border-radius:12px;background:#091d56}.hdrg-transform-card strong{font-size:14px;color:#fff}.hdrg-transform-card .pair{display:grid;grid-template-columns:1fr 1fr;gap:10px}.hdrg-transform-card input{width:100%;min-height:44px;background:#061036;border:1px solid #6083cd}.hdrg-transform-card .hint{font-size:12px;color:#c3d4f9;line-height:1.6}.hdrg-transform-card .count{font-size:12px;color:#a9ffdd}.build-label{display:inline-block;margin-left:8px;padding:3px 8px;border:1px solid #466cba;border-radius:5px;font-size:11px;color:#b9d4ff}.canvas-scroll .resize-handle{vector-effect:non-scaling-stroke;stroke-width:2}.transform-hint{z-index:1;position:relative}';
+uxStampStyle.textContent='.hdrg-transform-card{display:grid;gap:9px;padding:15px;margin:12px 0;border:1px solid #5d8ce6;border-radius:12px;background:#091d56}.hdrg-transform-card strong{font-size:14px;color:#fff}.hdrg-transform-card .pair{display:grid;grid-template-columns:1fr 1fr;gap:10px}.hdrg-transform-card input{width:100%;min-height:44px;background:#061036;border:1px solid #6083cd}.hdrg-transform-card .hint{font-size:12px;color:#c3d4f9;line-height:1.6}.hdrg-transform-card .count{font-size:12px;color:#a9ffdd}.build-label{display:inline-block;margin-left:8px;padding:3px 8px;border:1px solid #466cba;border-radius:5px;font-size:11px;color:#b9d4ff}.canvas-scroll .resize-handle{vector-effect:non-scaling-stroke;stroke-width:2}.canvas-scroll [data-free-transform] .resize-handle{cursor:nwse-resize;fill:#fff;stroke:#276dff;pointer-events:all}.canvas-scroll [data-free-transform] rect:first-child{stroke:#8ed0ff;stroke-width:3}.transform-hint{z-index:1;position:relative}';
 document.head.append(uxStampStyle);
 const transformInspectorBefore=renderEditor;
 renderEditor=function(){
