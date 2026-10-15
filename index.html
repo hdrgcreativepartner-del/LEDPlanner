@@ -577,6 +577,32 @@ renderEditor=function(){
  }
 };
 
+
+/* Routing screen geometry shares Output Map coordinates and scale. */
+const routingSvgOriginal=canvasSVG;
+canvasSVG=function(requested,interactive){
+ const kind=requested||(tab==='Kabel'?'cable':mode);
+ let xml=routingSvgOriginal(requested,interactive);
+ if(kind!=='cable')return xml;
+ for(const screen of state.screens.filter(s=>s.output===activeOutput)){
+   const re=new RegExp('(<g\\s+data-screen="'+screen.id+'"\\s+transform=")[^"]*(")');
+   xml=xml.replace(re,(match,before,after)=>before+'translate('+screen.ox+' '+screen.oy+') scale('+outputScale(screen)+')'+after);
+ }
+ return xml;
+};
+const routingDisplayOriginal=renderEditor;
+renderEditor=function(){
+ routingDisplayOriginal();
+ if(tab!=='Kabel')return;
+ const s=current(),bottom=document.querySelector('.bottom');
+ if(!s||!bottom)return;
+ const d=transformedScreenSize(s,'output');
+ const span=document.createElement('span');
+ span.className='routing-transform-resolution';
+ span.textContent=' · '+escapeHTML(s.name)+': '+d.width+' × '+d.height+' px · Output '+Math.round(outputScale(s)*100)+'%';
+ bottom.append(span);
+};
+
 render();
 </script></body></html>
 
