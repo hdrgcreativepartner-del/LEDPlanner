@@ -228,7 +228,7 @@ document.head.append(freeTransformStyle);
 const transformSVGBase=canvasSVG;
 canvasSVG=function(v,interactive){
  let xml=transformSVGBase(v,interactive),kind=v|| (tab==='Kabel'?'cable':mode);
- if(kind==='output'){
+ if(kind==='output'||kind==='cable'){
   for(let s of state.screens.filter(s=>s.output===activeOutput)){
    let start='<g data-screen="'+s.id+'" transform="translate('+s.ox+' '+s.oy+')"';
    let scaled='<g data-screen="'+s.id+'" transform="translate('+s.ox+' '+s.oy+') scale('+outputScale(s)+')"';
@@ -561,6 +561,19 @@ renderEditor=function(){
    '<div class="helper">Input transform: <b>'+input.width+' × '+input.height+' px</b><br>Output transform: <b>'+output.width+' × '+output.height+' px</b></div>'+
    '<div class="count">Kabinet fisik tetap: '+screen.cols+' kolom × '+screen.rows+' baris</div>'+
    '<div class="hint">Tarik bidang untuk Move · tarik sudut untuk resize proporsional.</div>';
+ }
+};
+
+/* Routing follows transformed output geometry; hardware routing stays cabinet-based. */
+const transformRoutingEditor=renderEditor;
+renderEditor=function(){
+ transformRoutingEditor();
+ if(tab!=='Kabel')return;
+ const footer=document.querySelector('.bottom');
+ if(footer&&!footer.querySelector('.routing-transform-note')){
+  const txt=document.createElement('span');txt.className='routing-transform-note';
+  txt.textContent=' · Geometri routing mengikuti skala Output Map; jumlah kabinet, port, dan loop tetap.';
+  footer.append(txt);
  }
 };
 
