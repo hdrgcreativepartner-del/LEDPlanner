@@ -343,9 +343,10 @@ drawCanvas=function(){
  // Replacing the SVG element removes all older addEventListener handlers,
  // including capture-phase listeners which cannot be cleared with onpointerdown=null.
  const clean=svg.cloneNode(true);
- clean.onwheel=svg.onwheel;
+ clean.onwheel=e=>{e.preventDefault();const r=clean.getBoundingClientRect();if(!r.width||!r.height)return;zoomView(Math.exp(Math.max(-100,Math.min(100,e.deltaY))*.002),(e.clientX-r.left)/r.width,(e.clientY-r.top)/r.height)};
  svg.replaceWith(clean);
  svg=clean;
+ applyView();
  // The historical handlers were attached to onpointer*; remove them so one
  // interaction cannot simultaneously pan, move, and resize the same screen.
  svg.onpointerdown=null;
