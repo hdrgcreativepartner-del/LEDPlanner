@@ -132,7 +132,7 @@ function snapped(n,s,axis){if(!snap||tab==='Kabel'||(mode==='input'&&s.angle))re
 const touches=new Map();let pinch=null;
 drawCanvas=function(){$('stage').innerHTML=canvasSVG(undefined,true);let svg=$('canvas'),key=tab+':'+mode+':'+activeOutput+':'+dimensions().w+':'+dimensions().h;svg.style.width='100%';svg.style.height='100%';if(key!==viewKey){viewKey=key;fitView()}else applyView();svg.onwheel=e=>{e.preventDefault();let r=svg.getBoundingClientRect();zoomView(Math.exp(Math.max(-100,Math.min(100,e.deltaY))*.002),(e.clientX-r.left)/r.width,(e.clientY-r.top)/r.height)};
 svg.onpointerdown=e=>{if(e.button!==0&&e.button!==1)return;if(tab==='Kabel'&&routeDrawing&&tool!=='hand'&&!spaceHeld&&e.button===0){let g=e.target.closest('[data-screen]');if(g){e.preventDefault();if(g.dataset.screen!==selected){selected=g.dataset.screen;render();return}let s=current(),p=mousePoint(e,svg);routeCell(s,Math.floor((p.x-s.ox)/s.pw),Math.floor((p.y-s.oy)/s.ph));return}}e.preventDefault();svg.setPointerCapture(e.pointerId);touches.set(e.pointerId,{x:e.clientX,y:e.clientY});if(touches.size===2){let [a,b]=[...touches.values()];pinch={distance:Math.hypot(a.x-b.x,a.y-b.y)};drag=null;return}let p=mousePoint(e,svg),g=e.target.closest('[data-screen]');if(tool==='hand'||spaceHeld||e.button===1||!g){drag={kind:'pan',clientX:e.clientX,clientY:e.clientY,view:{...view}};svg.style.cursor='grabbing';return}selected=g.dataset.screen;let s=current();if(e.target.hasAttribute('data-rotate')){let cx=s.ix+sw(s)/2,cy=s.iy+sh(s)/2;drag={kind:'rotate',cx,cy,start:Math.atan2(p.y-cy,p.x-cx),angle:s.angle};return}if(tab==='Kabel'){touches.clear();render();return}drag={kind:'move',x:p.x-(mode==='input'?s.ix:s.ox),y:p.y-(mode==='input'?s.iy:s.oy)};};
-svg.onpointermove=e=>{if(touches.has(e.pointerId))touches.set(e.pointerId,{x:e.clientX,y:e.clientY});if(touches.size===2&&pinch){let [a,b]=[...touches.values()],dist=Math.hypot(a.x-b.x,a.y-b.y),r=svg.getBoundingClientRect();if(dist>2){zoomView(pinch.distance/dist,((a.x+b.x)/2-r.left)/r.width,((a.y+b.y)/2-r.top)/r.height);pinch.distance=dist}return}if(!drag)return;if(drag.kind==='pan'){let r=svg.getBoundingClientRect();view={...drag.view,x:drag.view.x-(e.clientX-drag.clientX)*drag.view.w/r.width,y:drag.view.y-(e.clientY-drag.clientY)*drag.view.h/r.height};applyView();svg.style.cursor='grabbing';return}let p=mousePoint(e,svg),s=current();if(drag.kind==='rotate'){let a=drag.angle+(Math.atan2(p.y-drag.cy,p.x-drag.cx)-drag.start)*180/Math.PI;if(e.shiftKey)a=Math.round(a/15)*15;s.angle=((Math.round(a)%360)+360)%360}else{let x=Math.max(0,Math.min(65000,snapped(p.x-drag.x,s,'x'))),y=Math.max(0,Math.min(65000,snapped(p.y-drag.y,s,'y')));if(mode==='input'){s.ix=x;s.iy=y}else{s.ox=x;s.oy=y}}svg.querySelector(`[data-screen="${s.id}"]`).setAttribute('transform',`translate(${mode==='input'?s.ix:s.ox} ${mode==='input'?s.iy:s.oy}) ${mode==='input'?`rotate(${s.angle} ${sw(s)/2} ${sh(s)/2})`:''}`);liveCanvasSize()};
+svg.onpointermove=e=>{if(touches.has(e.pointerId))touches.set(e.pointerId,{x:e.clientX,y:e.clientY});if(touches.size===2&&pinch){let [a,b]=[...touches.values()],dist=Math.hypot(a.x-b.x,a.y-b.y),r=svg.getBoundingClientRect();if(dist>2){zoomView(pinch.distance/dist,((a.x+b.x)/2-r.left)/r.width,((a.y+b.y)/2-r.top)/r.height);pinch.distance=dist}return}if(!drag)return;if(drag.kind==='pan'){let r=svg.getBoundingClientRect();view={...drag.view,x:drag.view.x-(e.clientX-drag.clientX)*drag.view.w/r.width,y:drag.view.y-(e.clientY-drag.clientY)*drag.view.h/r.height};applyView();svg.style.cursor='grabbing';return}let p=mousePoint(e,svg),s=current();if(drag.kind==='rotate'){let a=drag.angle+(Math.atan2(p.y-drag.cy,p.x-drag.cx)-drag.start)*180/Math.PI;if(e.shiftKey)a=Math.round(a/15)*15;s.angle=((Math.round(a)%360)+360)%360}else{let x=Math.max(0,Math.min(65000,snapped(p.x-drag.x,s,'x'))),y=Math.max(0,Math.min(65000,snapped(p.y-drag.y,s,'y')));if(mode==='input'){s.ix=x;s.iy=y}else{s.ox=x;s.oy=y}}svg.querySelector(`[data-screen="${s.id}"]`).setAttribute('transform',`translate(${mode==='input'?s.ix:s.ox} ${mode==='input'?s.iy:s.oy}) ${mode==='input'?`rotate(${s.angle} ${sw(s)/2} ${sh(s)/2})`:`scale(${outputScale(s)})`}`);liveCanvasSize()};
 svg.onpointerup=svg.onpointercancel=e=>{touches.delete(e.pointerId);if(pinch){if(touches.size===0){pinch=null;render()}return}if(drag){let changed=drag.kind!=='pan';drag=null;if(changed)render();else applyView()}};
 };
 resizeCanvas=()=>applyView();
@@ -228,7 +228,7 @@ document.head.append(freeTransformStyle);
 const transformSVGBase=canvasSVG;
 canvasSVG=function(v,interactive){
  let xml=transformSVGBase(v,interactive),kind=v|| (tab==='Kabel'?'cable':mode);
- if(kind!=='input'){
+ if(kind==='output'){
   for(let s of state.screens.filter(s=>s.output===activeOutput)){
    let start='<g data-screen="'+s.id+'" transform="translate('+s.ox+' '+s.oy+')"';
    let scaled='<g data-screen="'+s.id+'" transform="translate('+s.ox+' '+s.oy+') scale('+outputScale(s)+')"';
@@ -272,6 +272,25 @@ drawCanvas=function(){
 };
 const transformEditorBase=renderEditor;
 renderEditor=function(){transformEditorBase();if(tab!=='Mapping')return;let s=current(),editor=document.querySelector('.inspector-body')||document.querySelector('.editor');if(!editor||!s)return;let box=document.createElement('div');box.className='output-scale-field';box.innerHTML='<label>Skala Output (%)<input type="number" min="10" max="2000" step="1" value="'+Math.round(outputScale(s)*100)+'" onchange="setOutputScale(this.value)"></label><small>Ukuran output: '+outputW(s)+' × '+outputH(s)+' px · kabinet tetap '+s.cols+' × '+s.rows+'. Gunakan handle pojok pada Output Map untuk mengubah skala.</small>';editor.append(box)};
+
+
+/* Cabinet geometry is editable exclusively through numeric row/column fields.
+   Transform gestures only update outputScale, never cols/rows. */
+const cabinetGuardDraw=drawCanvas;
+drawCanvas=function(){
+ cabinetGuardDraw();
+ const svg=$('canvas');
+ if(!svg||tab!=='Mapping')return;
+ let snapshot=null;
+ svg.addEventListener('pointerdown',e=>{
+  if(e.button!==0||!e.target.closest('[data-screen],[data-transform-grip]'))return;
+  const screen=state.screens.find(s=>s.id===(e.target.closest('[data-screen]')?.dataset.screen||e.target.closest('[data-transform-grip]')?.dataset.transformGrip));
+  if(screen)snapshot={screen,cols:screen.cols,rows:screen.rows};
+ },true);
+ const protect=()=>{if(!snapshot)return;const {screen,cols,rows}=snapshot;if(screen.cols!==cols||screen.rows!==rows){screen.cols=cols;screen.rows=rows;persist()}snapshot=null};
+ svg.addEventListener('pointerup',protect);
+ svg.addEventListener('pointercancel',protect);
+};
 
 render();
 </script></body></html>
