@@ -333,6 +333,112 @@ drawCanvas=function(){
  svg.addEventListener('pointercancel',finish,true);
 };
 
+
+/* One authoritative mapping pointer controller; replaces accumulated legacy handlers. */
+const unifiedDrawBase=drawCanvas;
+drawCanvas=function(){
+ unifiedDrawBase();
+ const svg=$('canvas');
+ if(!svg||tab!=='Mapping')return;
+ // The historical handlers were attached to onpointer*; remove them so one
+ // interaction cannot simultaneously pan, move, and resize the same screen.
+ svg.onpointerdown=null;
+ svg.onpointermove=null;
+ svg.onpointerup=null;
+ svg.onpointercancel=null;
+ let interaction=null;
+ const coords=e=>mousePoint(e,svg);
+ const place=(s)=>{
+  const group=svg.querySelector('[data-screen="'+s.id+'"]');
+  if(group)group.setAttribute('transform','translate('+(mode==='input'?s.ix:s.ox)+' '+(mode==='input'?s.iy:s.oy)+') '+(mode==='input'?'rotate('+(s.angle||0)+' '+sw(s)/2+' '+sh(s)/2+')':'scale('+outputScale(s)+')'));
+  const overlay=svg.querySelector('[data-free-transform]');
+  if(overlay&&mode==='output'){
+   overlay.setAttribute('transform','translate('+s.ox+' '+s.oy+')');
+   const frame=overlay.querySelector('rect:first-child');
+   if(frame){frame.setAttribute('width',outputW(s));frame.setAttribute('height',outputH(s))}
+   const corners=[[0,0],[outputW(s),0],[outputW(s),outputH(s)],[0,outputH(s)]];
+   overlay.querySelectorAll('[data-transform-grip]').forEach((grip,index)=>{
+    grip.setAttribute('x',corners[index][0]-7);
+    grip.setAttribute('y',corners[index][1]-7);
+   });
+  }
+ };
+ svg.addEventListener('pointerdown',e=>{
+  if(e.button!==0&&e.button!==1)return;
+  const grip=e.target.closest('[data-transform-grip]');
+  const rotate=e.target.closest('[data-rotate]');
+  const screenGroup=e.target.closest('[data-screen]');
+  const targetId=grip?.dataset.transformGrip||screenGroup?.dataset.screen;
+  const targetScreen=state.screens.find(x=>x.id===targetId);
+  const p=coords(e);
+  if(e.button===1||tool==='hand'||spaceHeld||(!grip&&!rotate&&!targetScreen)){
+   interaction={kind:'pan',point:p,clientX:e.clientX,clientY:e.clientY,initial:{...view}};
+  }else if(rotate&&mode==='input'){
+   const s=targetScreen||current();
+   if(!s)return;
+   selected=s.id;
+   const cx=s.ix+sw(s)/2,cy=s.iy+sh(s)/2;
+   interaction={kind:'rotate',s,cx,cy,start:Math.atan2(p.y-cy,p.x-cx),angle:s.angle||0};
+  }else if(grip&&mode==='output'){
+   const s=targetScreen;if(!s)return;
+   selected=s.id;
+   interaction={kind:'scale',s,corner:grip.dataset.corner,x:s.ox,y:s.oy,w:outputW(s),h:outputH(s)};
+  }else if(targetScreen){
+   const s=targetScreen;
+   if(mode==='output'&&s.output!==activeOutput)return;
+   selected=s.id;
+   interaction={kind:'move',s,offsetX:p.x-(mode==='input'?s.ix:s.ox),offsetY:p.y-(mode==='input'?s.iy:s.oy)};
+  }
+  if(!interaction)return;
+  interaction.pointerId=e.pointerId;
+  interaction.moved=false;
+  e.preventDefault();
+  svg.setPointerCapture(e.pointerId);
+ },true);
+ svg.addEventListener('pointermove',e=>{
+  if(!interaction||e.pointerId!==interaction.pointerId)return;
+  const g=interaction;
+  e.preventDefault();
+  if(g.kind==='pan'){
+   const r=svg.getBoundingClientRect();
+   view={...g.initial,x:g.initial.x-(e.clientX-g.clientX)*g.initial.w/r.width,y:g.initial.y-(e.clientY-g.clientY)*g.initial.h/r.height};
+   applyView();return;
+  }
+  const p=coords(e),s=g.s;g.moved=true;
+  if(g.kind==='move'){
+   const nx=Math.max(0,Math.min(65000,snapped(p.x-g.offsetX,s,'x')));
+   const ny=Math.max(0,Math.min(65000,snapped(p.y-g.offsetY,s,'y')));
+   if(mode==='input'){s.ix=nx;s.iy=ny}else{s.ox=nx;s.oy=ny}
+  }else if(g.kind==='rotate'){
+   let a=g.angle+(Math.atan2(p.y-g.cy,p.x-g.cx)-g.start)*180/Math.PI;
+   if(e.shiftKey)a=Math.round(a/15)*15;
+   s.angle=((Math.round(a)%360)+360)%360;
+  }else if(g.kind==='scale'){
+   const ox=g.corner.includes('w')?g.x+g.w:g.x;
+   const oy=g.corner.includes('n')?g.y+g.h:g.y;
+   const sx=g.corner.includes('w')?-1:1,sy=g.corner.includes('n')?-1:1;
+   const vx=sx*(p.x-ox),vy=sy*(p.y-oy),w=sw(s),h=sh(s);
+   s.outputScale=Math.round(Math.max(.1,Math.min(20,(vx*w+vy*h)/(w*w+h*h)))*1000)/1000;
+   s.ox=Math.max(0,Math.round(ox-(g.corner.includes('w')?outputW(s):0)));
+   s.oy=Math.max(0,Math.round(oy-(g.corner.includes('n')?outputH(s):0)));
+  }
+  place(s);
+  liveCanvasSize();
+ },true);
+ const finish=e=>{
+  if(!interaction||e.pointerId!==interaction.pointerId)return;
+  const g=interaction;interaction=null;
+  e.preventDefault();
+  try{if(svg.hasPointerCapture(e.pointerId))svg.releasePointerCapture(e.pointerId)}catch{}
+  if(g.kind==='pan'){applyView();return}
+  // No geometry of LED cabinets is ever mutated by this controller.
+  // Re-render on selection as well so the correct transform handles appear.
+  persist();render();
+ };
+ svg.addEventListener('pointerup',finish,true);
+ svg.addEventListener('pointercancel',finish,true);
+};
+
 render();
 </script></body></html>
 
