@@ -335,24 +335,22 @@ drawCanvas=function(){
 
 
 /* One authoritative mapping pointer controller; replaces accumulated legacy handlers. */
-const unifiedDrawBase=drawCanvas;
 drawCanvas=function(){
- unifiedDrawBase();
- let svg=$('canvas');
- if(!svg||tab!=='Mapping')return;
- // Replacing the SVG element removes all older addEventListener handlers,
- // including capture-phase listeners which cannot be cleared with onpointerdown=null.
- const clean=svg.cloneNode(true);
- clean.onwheel=e=>{e.preventDefault();const r=clean.getBoundingClientRect();if(!r.width||!r.height)return;zoomView(Math.exp(Math.max(-100,Math.min(100,e.deltaY))*.002),(e.clientX-r.left)/r.width,(e.clientY-r.top)/r.height)};
- svg.replaceWith(clean);
- svg=clean;
- applyView();
- // The historical handlers were attached to onpointer*; remove them so one
- // interaction cannot simultaneously pan, move, and resize the same screen.
- svg.onpointerdown=null;
- svg.onpointermove=null;
- svg.onpointerup=null;
- svg.onpointercancel=null;
+ // Rebuild the canvas directly. Do not clone nodes or inherit legacy listeners.
+ const stage=$('stage');
+ if(!stage)return;
+ stage.innerHTML=canvasSVG(undefined,true);
+ const svg=$('canvas');
+ if(!svg)return;
+ const key=tab+':'+mode+':'+activeOutput+':'+dimensions().w+':'+dimensions().h;
+ svg.style.width='100%';svg.style.height='100%';
+ if(key!==viewKey){viewKey=key;fitView()}else applyView();
+ svg.onwheel=e=>{
+  e.preventDefault();
+  const r=svg.getBoundingClientRect();
+  if(!r.width||!r.height)return;
+  zoomView(Math.exp(Math.max(-100,Math.min(100,e.deltaY))*.002),(e.clientX-r.left)/r.width,(e.clientY-r.top)/r.height);
+ };
  let interaction=null;
  const coords=e=>mousePoint(e,svg);
  const place=(s)=>{
