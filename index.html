@@ -536,6 +536,34 @@ renderEditor=function(){
 };
 const miniGuide=document.createElement('style');miniGuide.textContent='.canvas-scroll .resize-handle{fill:#eef5ff;stroke:#427cdb;stroke-width:1.5}.canvas-scroll [data-free-transform] rect:first-child{stroke-width:1.2;stroke-dasharray:4 3}.tools button,.align-tools button,.canvas-bar button{font-size:12px;min-height:34px;padding:6px 9px}.hdrg-transform-card{padding:10px;gap:6px;border-color:#324a79;background:#091735}.hdrg-transform-card .hint{font-size:11px}';document.head.append(miniGuide);
 
+
+/* Transformed source/output pixel dimensions are displayed separately from hardware. */
+function transformedScreenSize(screen,kind){
+ const scale=kind==='input'?(Number(screen.inputScale)||1):outputScale(screen);
+ return {width:Math.round(sw(screen)*scale),height:Math.round(sh(screen)*scale)};
+}
+function setInputTransformScale(value){
+ const screen=current(),percent=Number(value);
+ if(!screen||!Number.isFinite(percent)||percent<10||percent>2000)return notify('Skala Input harus 10–2000%.');
+ screen.inputScale=Math.round(percent)/100;
+ persist();render();
+}
+const resolutionInspectorBase=renderEditor;
+renderEditor=function(){
+ resolutionInspectorBase();
+ if(tab!=='Mapping'||!current())return;
+ const screen=current(),input=transformedScreenSize(screen,'input'),output=transformedScreenSize(screen,'output');
+ const panel=document.querySelector('.hdrg-transform-card');
+ if(panel){
+  panel.innerHTML='<strong>Transform · '+escapeHTML(screen.name)+'</strong>'+
+   '<div class="pair"><label>Skala Input (%)<input type="number" min="10" max="2000" value="'+Math.round((Number(screen.inputScale)||1)*100)+'" onchange="setInputTransformScale(this.value)"></label>'+
+   '<label>Skala Output (%)<input type="number" min="10" max="2000" value="'+Math.round(outputScale(screen)*100)+'" onchange="setOutputScale(this.value)"></label></div>'+
+   '<div class="helper">Input transform: <b>'+input.width+' × '+input.height+' px</b><br>Output transform: <b>'+output.width+' × '+output.height+' px</b></div>'+
+   '<div class="count">Kabinet fisik tetap: '+screen.cols+' kolom × '+screen.rows+' baris</div>'+
+   '<div class="hint">Tarik bidang untuk Move · tarik sudut untuk resize proporsional.</div>';
+ }
+};
+
 render();
 </script></body></html>
 
